@@ -2,6 +2,8 @@
 
 **Detecting a hippopotamus while it is still under water, so that a person on the bank gets a warning before there is anything to hear.**
 
+*Acoustic recording under way at **Emirates Park Zoo, Abu Dhabi**.*
+
 ![Interface loss](figures/01_interface_loss.png)
 
 ---
@@ -15,11 +17,13 @@
 >
 > ### Status: concept, with measurements under way
 >
-> No system is deployed anywhere and there are no hippopotamus recordings in
-> this project yet. Recording is under way at Emirates Park Zoo, Abu Dhabi.
-> Every number on this page is either a physical calculation or a measurement
-> on a simulator, and each one is labelled as such. Nothing here is a
-> measurement on a hippopotamus.
+> No system is deployed anywhere. Acoustic recording on live animals is under
+> way at **Emirates Park Zoo, Abu Dhabi**, which provides access to the hippo
+> enclosure; instrumentation, protocol and analysis are mine.
+>
+> The recordings are not yet analysed, so **every number on this page is either
+> a physical calculation or a measurement on a simulator**, and each one is
+> labelled as such. Nothing here is a measurement on a hippopotamus.
 
 ---
 
@@ -117,9 +121,14 @@ point of the second stage. With the classifier:
 
 The binding constraint is the alarm rate, not the classifier.
 
-## What is being measured at the zoo
+## The study at Emirates Park Zoo
 
-One quantity: **the interval between the first submerged call a hydrophone can
+Emirates Park Zoo in Abu Dhabi holds hippopotamuses in a pool that can be
+instrumented, observed continuously and filmed — which a river cannot. The zoo
+provides access to the enclosure; the hydrophone, the microphone, the recording
+protocol and the analysis are mine.
+
+The study measures one quantity: **the interval between the first submerged call a hydrophone can
 detect and the moment the animal is at the surface.** It has never been
 measured for this species. It is the entire warning the system can deliver.
 
@@ -153,7 +162,14 @@ level has ever been published for *Hippopotamus amphibius*:
 
 Infrasonic communication in elephants was found in a zoo, with recording
 equipment, before anyone documented it in the field (Payne, Langbauer & Thomas,
-1986). The same route is open for this species and has not been taken.
+1986). The same route is open for this species and has not been taken: a zoo,
+a hydrophone, and enough patient hours.
+
+A captive pool fixes the call repertoire, the postures, the lead-time
+distribution and the presence or absence of an airborne low-frequency
+component. It cannot fix propagation ranges in a river, the source levels of a
+wild animal, or how a territorial male behaves toward a stranger on a bank.
+Those need a field site and are outside this study.
 
 ## Sources
 
