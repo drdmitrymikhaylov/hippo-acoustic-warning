@@ -8,13 +8,6 @@
 
 ---
 
-> ### Source code is not public
->
-> The detection pipeline is under active development and the work is tied to a
-> partnership discussion and to pending intellectual property. The code
-> repository is private. **The source is available for technical review under
-> NDA** — contact me through the links at the end of this page.
->
 > ### Status: concept, with measurements under way
 >
 > No system is deployed anywhere. Acoustic recording on live animals is under
@@ -147,6 +140,96 @@ level has ever been published for *Hippopotamus amphibius*:
 
 ![Detection range](figures/02_detection_range.png)
 
+## The physics, one step further: a shallow source is not 35 dB down
+
+![shallow source](figures/06_shallow_source.png)
+
+The 35.5 dB above is a plane-wave number. It is exact for a source many
+wavelengths below the surface, where the field arriving at the interface is
+a sum of propagating plane waves and Snell's law and the impedance ratio
+decide everything. A hippopotamus is not many wavelengths down. At 50 Hz the
+wavelength in water is 30 m; an animal calling at 1–3 m is a small fraction
+of a wavelength from the surface, and there the field at the interface is
+dominated by *evanescent* components — the near field of the source — which
+the plane-wave calculation does not contain. The acoustics literature calls
+the consequence "anomalous transparency" (Godin, 2006–2008): a shallow
+source loses far less into the air than the plane-wave figure says.
+
+**Exact result.** The two-medium problem for a point source under a flat
+water–air interface has a closed form as a wavenumber integral (the
+Sommerfeld representation, with the plane-wave reflection and transmission
+coefficients under the integral). The fraction of the source's radiated
+power that crosses into the air depends only on depth measured in
+wavelengths:
+
+| source depth / λ | loss into the air | example |
+|---|---|---|
+| 0.01 | 1.4 dB | |
+| 0.03 | 9.0 dB | 1 m at 50 Hz: 10 dB |
+| 0.1 | 25 dB | 3 m at 50 Hz: 26 dB; 1 m at 200 Hz: 29 dB |
+| 0.3 and deeper | 35.5 dB | 3 m at 200 Hz — the plane-wave value |
+
+The deep limit reproduces the plane-wave 35.5 dB to 0.1 dB, which is the
+check that the integral is right; the field it produces satisfies both
+interface conditions (pressure and normal velocity continuous) to 1 %, and
+with the interface removed it collapses to the free-field source. The
+shallow end changes the sensor argument: for the low-frequency part of a
+submerged call — the part the project is built around — an animal a metre
+down is 10 dB below the surface, not 35. The hydrophone's advantage over the
+bank microphone is real at every depth, but at the depths and frequencies
+that matter it is 10–25 dB, not a fixed 35.
+
+**The PINN, and what it did not do.** The integral only exists for a flat
+surface. A river bank slopes, and a pool has walls; for those there is no
+closed form, and that is where a physics-informed network would earn its
+keep. `src/interface_pinn.py` builds one: two networks, one per medium, each
+obeying the Helmholtz equation for its own wavenumber; the source and its
+mirror image added in closed form, so the singularity never enters the loss
+and the water network only carries a correction of order ρ_air/ρ_water; the
+velocity-continuity condition built into the air network's architecture as a
+hard constraint (its normal derivative at the surface *is* the analytic
+Neumann data, by construction); a second-order Bayliss–Turkel radiation
+condition on half-disc arcs. It is scored against the exact field for a
+line source 3 m down.
+
+| quantity, line source 3 m down at 50 Hz | exact | PINN |
+|---|---|---|
+| fraction of power into the air | 28.6 dB | 46.2 dB |
+| relative field error, water | — | 0.5 % |
+| relative field error, air | — | 79 % |
+
+The network gets the water right (the analytic image does the work) and
+the air wrong by a factor of three in amplitude, with the Helmholtz
+residual, the interface conditions and the radiation condition all
+satisfied to a few percent. That combination is the diagnosis: the network
+solved a *different* well-posed problem. The air field of a shallow line
+source is not a compact beam; the transmitted field runs along the surface
+and decays slowly with distance (the exact surface pressure 6 m from the
+source is still a fifth of its peak), so a half-disc of three air
+wavelengths with an outgoing-wave condition on its arc cuts into the source
+region itself, and the truncated problem has less power in it. Four earlier
+formulations failed for reasons worth recording: a soft interface loss let
+the network match the normal velocity with a thin boundary layer of tiny
+amplitude while violating the wave equation next to the surface (residual
+10–90 % of k²p a metre up, invisible in the domain-averaged loss); Fourier
+features far above the wavenumber made the second derivatives noisy; a
+box with a first-order radiation condition reflected grazing energy; and
+one "hard constraint" quietly imposed a zero-pressure condition nobody had
+asked for. Each was found by comparing against the exact field, which is
+the point of having one.
+
+The sloping-bank cases were therefore not run: a network that does not
+reproduce the flat surface has not earned a surface without a reference.
+What it would take is a domain several times the surface footprint — of
+order a hundred metres at 50 Hz — or a boundary-integral formulation that
+carries the infinite surface analytically; both are noted, neither is done
+here.
+
+The exact comparison is in two dimensions (a line source), which is what
+the network solves; the 35.5 dB and the table above it are for a point
+source. The two geometries differ in their deep limit by one decibel (34.4
+versus 35.5 dB) and agree on the shape of the shallow-source curve.
+
 ## What cannot be claimed
 
 - That the hippo's roar is infrasonic. It is not: the surface call peaks at
@@ -182,6 +265,37 @@ Asian elephant.* Behavioral Ecology and Sociobiology 18, 297–301.
 Atmospheric absorption: ISO 9613-1:1993. Interface transmission: standard
 fluid–fluid result, Kinsler, Frey, Coppens & Sanders, *Fundamentals of
 Acoustics*, 4th ed., ch. 6.
+
+## Source code
+
+The physics is public in this repository:
+
+- `src/propagation.py` — the interface loss, refraction cone, atmospheric
+  absorption (ISO 9613-1), transmission loss and detection range
+- `src/interface_pinn.py` — the exact wavenumber-integral solution for a
+  source under the surface, and the physics-informed network that was
+  scored against it
+- `src/interface_figure.py` — the figure above
+- `tests/test_interface.py` — six checks: the deep limit reproduces the
+  plane-wave loss, the transparency depends only on depth in wavelengths,
+  the exact field reduces to the free field without an interface and
+  satisfies both interface conditions, and the network's result is what
+  the page says it is
+
+The detection pipeline (synthetic hippo-call generator, the classifier,
+the stream evaluation and the lead-time sizing) is held in a private
+repository while the zoo recordings are analysed.
+
+```
+pip install -r requirements.txt
+python tests/test_interface.py
+python src/interface_pinn.py      # exact curves in seconds; the network ~30 min on a laptop CPU
+```
+
+## Licence
+
+Documentation, figures and result files: CC BY 4.0. Source code in `src/`
+and `tests/`: MIT. No recordings are included.
 
 ## Contact
 
